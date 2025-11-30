@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package abd;
+
+// Tag used by ABD: (counter, client_id)
+message Tag {
+  uint64 counter = 1;   // Lamport-style counter
+  string client_id = 2; // Unique per client process
+}
+
+// ---------- Requests / Replies for ABD phases ----------
+
+// Phase 1 of WRITE: client asks for the current tag of a key.
+message WriteQueryRequest {
+  string key = 1;
+}
+
+message WriteQueryReply {
+  Tag tag = 1;          // Current tag for this key at this server
+}
+
+// Phase 1 of READ: client asks for current (tag, value) of a key.
+message ReadQueryRequest {
+  string key = 1;
+}
+
+message ReadQueryReply {
+  Tag tag   = 1;        // Current tag for this key at this server
+  bytes value = 2;      // Current value; use string if you prefer
+}
+
+// Phase 2 of WRITE and READ: client propagates tagged value.
+message WritePropRequest {
+  string key = 1;
+  Tag tag = 2;
+  bytes value = 3;
+}
+
+// Generic ACK reply for write propagation.
+message Ack {
+  bool ok = 1;          // true if server processed the request
+  string error = 2;     // optional error message (for logging/debug)
+}
+
+// ---------- ABD Service ----------
+
+service ABDService {
+  // WRITE protocol phase 1: server returns its current tag for key.
+  rpc WriteQuery(WriteQueryRequest) returns (WriteQueryReply);
+
+  // READ protocol phase 1: server returns its current (tag, value) for key.
+  rpc ReadQuery(ReadQueryRequest) returns (ReadQueryReply);
+
+  // WRITE/READ phase 2 ("write-back"): server stores (tag, value) if tag is newer.
+  rpc WriteProp(WritePropRequest) returns (Ack);
+}
