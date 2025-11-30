@@ -1,0 +1,7 @@
+PUT a hello
+PUT b world
+GET a
+GET b
+
+PUT a updated_value
+GET a
