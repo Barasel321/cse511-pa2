@@ -30,7 +30,7 @@ public:
 
     bool Put(const std::string& key, const std::string& value)
     {
-        auto op_start = std::chrono::steady_clock::now();
+        // auto op_start = std::chrono::steady_clock::now();
 
         abd::Tag max_tag;
         max_tag.set_counter(0);
@@ -57,9 +57,9 @@ public:
         }
 
         if (success_count < W_) {
-            auto op_end = std::chrono::steady_clock::now();
-            auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
-            std::cerr << "PUT " << key << " failed: did not reach write quorum in WriteQuery phase (" << success_count << " < " << W_ << ") latency_ms=" << latency_us << "\n";
+            // auto op_end = std::chrono::steady_clock::now();
+            // auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+            std::cerr << "PUT " << key << " failed: did not reach write quorum in WriteQuery phase (" << success_count << " < " << W_ << ")\n";
             return false;
         }
 
@@ -84,21 +84,21 @@ public:
         }
 
         if (ack_count < W_) {
-            auto op_end = std::chrono::steady_clock::now();
-            auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
-            std::cerr << "PUT " << key << " failed: did not reach write quorum in WriteProp phase (" << ack_count << " < " << W_ << ") latency_ms=" << latency_us << "\n";
+            // auto op_end = std::chrono::steady_clock::now();
+            // auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+            std::cerr << "PUT " << key << " failed: did not reach write quorum in WriteProp phase (" << ack_count << " < " << W_ << ")\n";
             return false;
         }
 
-        auto op_end = std::chrono::steady_clock::now();
-        auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
-        std::cout << " PUT " << key << " = " << value << " (tag.counter=" << new_tag.counter() << ", tag.client_id=" << new_tag.client_id() << ") latency_ms=" << latency_us << "\n";
+        // auto op_end = std::chrono::steady_clock::now();
+        // auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+        std::cout << " PUT " << key << " = " << value << " (tag.counter=" << new_tag.counter() << ", tag.client_id=" << new_tag.client_id() << ")\n";
         return true;
     }
 
     bool Get(const std::string& key, std::string& value_out)
     {
-        auto op_start = std::chrono::steady_clock::now();
+        // auto op_start = std::chrono::steady_clock::now();
 
         abd::Tag max_tag;
         max_tag.set_counter(0);
@@ -127,9 +127,9 @@ public:
         }
 
         if (success_count < R_ || !have_value) {
-            auto op_end = std::chrono::steady_clock::now();
-            auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
-            std::cerr << "GET " << key << " failed: did not reach read quorum in ReadQuery phase (" << success_count << " < " << R_ << ") latency_ms=" << latency_us << "\n";
+            // auto op_end = std::chrono::steady_clock::now();
+            // auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+            std::cerr << "GET " << key << " failed: did not reach read quorum in ReadQuery phase (" << success_count << " < " << R_ << ")\n";
             return false;
         }
 
@@ -150,17 +150,17 @@ public:
         }
 
         if (ack_count < R_) {
-            auto op_end = std::chrono::steady_clock::now();
-            auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
-            std::cerr << "GET " << key << " failed: did not reach read quorum in WriteProp phase (" << ack_count << " < " << R_ << ") latency_ms=" << latency_us << "\n";
+            // auto op_end = std::chrono::steady_clock::now();
+            // auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+            std::cerr << "GET " << key << " failed: did not reach read quorum in WriteProp phase (" << ack_count << " < " << R_ << ")\n";
             return false;
         }
 
-        auto op_end = std::chrono::steady_clock::now();
-        auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+        // auto op_end = std::chrono::steady_clock::now();
+        // auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
         value_out = max_value;
-        pid_t current_pid = getpid();
-        std::cout << current_pid << " GET " << key << " -> " << value_out << " (tag.counter=" << max_tag.counter() << ", tag.client_id=" << max_tag.client_id() << ") latency_ms=" << latency_us << "\n";
+        // pid_t current_pid = getpid();
+        std::cout << " GET " << key << " -> " << value_out << " (tag.counter=" << max_tag.counter() << ", tag.client_id=" << max_tag.client_id() << ")\n";
         return true;
     }
 
@@ -228,6 +228,14 @@ int main(int argc, char** argv) {
 
     ABDClient client(server_addrs);
 
+    std::string csv_path = input_path + ".csv";
+    std::ofstream csv(csv_path);
+    if (!csv.is_open()) {
+        std::cerr << "Failed to open CSV file: " << csv_path << "\n";
+        return 1;
+    }
+    csv << "op,key,value,latency_ms,success\n";
+
     std::string line;
     while (std::getline(in, line)) {
         std::string trimmed = Trim(line);
@@ -243,14 +251,30 @@ int main(int argc, char** argv) {
             std::string value;
             std::getline(iss, value);
             value = Trim(value);
-            if (!client.Put(key, value)) {
+
+            auto op_start = std::chrono::steady_clock::now();
+            bool ok = client.Put(key, value);
+            auto op_end = std::chrono::steady_clock::now();
+            auto latency_ms = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+
+
+            csv << "PUT," << key << "," << value << "," << latency_ms << "," << (ok ? 1 : 0) << "\n";
+            if (!ok) {
                 std::cerr << "PUT failed for key " << key << "\n";
             }
         } else if (cmd == "GET" || cmd == "get") {
             std::string key;
             iss >> key;
-            std::string val;
-            if (!client.Get(key, val)) {
+            std::string value;
+
+            auto op_start = std::chrono::steady_clock::now();
+            bool ok = client.Get(key, value);
+            auto op_end = std::chrono::steady_clock::now();
+            auto latency_ms = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+
+
+            csv << "GET," << key << "," << value << "," << latency_ms << "," << (ok ? 1 : 0) << "\n";
+            if (!ok) {
                 std::cerr << "GET failed for key " << key << "\n";
             }
         } else {
