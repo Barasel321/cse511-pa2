@@ -2,6 +2,7 @@
 #include "proto/abd.pb.h"
 #include <grpcpp/grpcpp.h>
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -13,64 +14,174 @@
 
 class ABDClient {
 public:
-    explicit ABDClient(const std::string& server_addr)
+    explicit ABDClient(const std::vector<std::string>& server_addrs)
     {
-        channel_ = grpc::CreateChannel(server_addr, grpc::InsecureChannelCredentials());
-        stub_ = abd::ABDService::NewStub(channel_);
-        std::cout << "ABDClient connecting to " << server_addr << "\n";
+        for (const auto& addr : server_addrs) {
+            std::shared_ptr<grpc::Channel> ch = grpc::CreateChannel(addr, grpc::InsecureChannelCredentials());
+            std::unique_ptr<abd::ABDService::Stub> stub = abd::ABDService::NewStub(ch);
+            replicas_.push_back({addr, std::move(ch), std::move(stub)});
+            std::cout << "ABDClient connecting to " << addr << "\n";
+        }
+        N_ = static_cast<int>(replicas_.size());
+        R_ = N_ / 2 + 1;
+        W_ = N_ / 2 + 1;
+        client_id_ = std::to_string(getpid());
     }
 
     bool Put(const std::string& key, const std::string& value)
     {
-        abd::WriteQueryRequest qreq;
-        qreq.set_key(key);
-        abd::WriteQueryReply qrep;
-        grpc::ClientContext qctx;
-        grpc::Status qstatus = stub_->WriteQuery(&qctx, qreq, &qrep);
-        if (!qstatus.ok()) {
-            std::cerr << "WriteQuery failed for PUT " << key << ": " << qstatus.error_message() << "\n";
+        auto op_start = std::chrono::steady_clock::now();
+
+        abd::Tag max_tag;
+        max_tag.set_counter(0);
+        max_tag.set_client_id("");
+        bool have_tag = false;
+        int success_count = 0;
+
+        for (auto& r : replicas_) {
+            abd::WriteQueryRequest qreq;
+            qreq.set_key(key);
+            abd::WriteQueryReply qrep;
+            grpc::ClientContext ctx;
+            grpc::Status status = r.stub->WriteQuery(&ctx, qreq, &qrep);
+            if (!status.ok()) {
+                std::cerr << "WriteQuery to " << r.address << " failed for PUT " << key << ": " << status.error_message() << "\n";
+                continue;
+            }
+            success_count++;
+            const abd::Tag& t = qrep.tag();
+            if (!have_tag || TagGreater(t, max_tag)) {
+                max_tag = t;
+                have_tag = true;
+            }
+        }
+
+        if (success_count < W_) {
+            auto op_end = std::chrono::steady_clock::now();
+            auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+            std::cerr << "PUT " << key << " failed: did not reach write quorum in WriteQuery phase (" << success_count << " < " << W_ << ") latency_ms=" << latency_us << "\n";
             return false;
         }
 
-        abd::WritePropRequest wreq;
-        wreq.set_key(key);
-        abd::Tag* t = wreq.mutable_tag();
-        t->set_counter(qrep.tag().counter() + 1);
-        t->set_client_id("client1");
-        wreq.set_value(value);
+        abd::Tag new_tag;
+        new_tag.set_counter(max_tag.counter() + 1);
+        new_tag.set_client_id(client_id_);
 
-        abd::Ack wrep;
-        grpc::ClientContext wctx;
-        grpc::Status wstatus = stub_->WriteProp(&wctx, wreq, &wrep);
-        if (!wstatus.ok() || !wrep.ok()) {
-            std::cerr << "WriteProp failed for PUT " << key << ": " << wstatus.error_message() << "\n";
+        int ack_count = 0;
+        for (auto& r : replicas_) {
+            abd::WritePropRequest wreq;
+            wreq.set_key(key);
+            *wreq.mutable_tag() = new_tag;
+            wreq.set_value(value);
+            abd::Ack wrep;
+            grpc::ClientContext ctx;
+            grpc::Status status = r.stub->WriteProp(&ctx, wreq, &wrep);
+            if (!status.ok() || !wrep.ok()) {
+                std::cerr << "WriteProp to " << r.address << " failed for PUT " << key << ": " << status.error_message() << "\n";
+                continue;
+            }
+            ack_count++;
+        }
+
+        if (ack_count < W_) {
+            auto op_end = std::chrono::steady_clock::now();
+            auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+            std::cerr << "PUT " << key << " failed: did not reach write quorum in WriteProp phase (" << ack_count << " < " << W_ << ") latency_ms=" << latency_us << "\n";
             return false;
         }
-        pid_t current_pid = getpid();
-        std::cout << current_pid << " PUT " << key << " = " << value << "\n";
+
+        auto op_end = std::chrono::steady_clock::now();
+        auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+        std::cout << " PUT " << key << " = " << value << " (tag.counter=" << new_tag.counter() << ", tag.client_id=" << new_tag.client_id() << ") latency_ms=" << latency_us << "\n";
         return true;
     }
 
     bool Get(const std::string& key, std::string& value_out)
     {
-        abd::ReadQueryRequest rreq;
-        rreq.set_key(key);
-        abd::ReadQueryReply rrep;
-        grpc::ClientContext rctx;
-        grpc::Status rstatus = stub_->ReadQuery(&rctx, rreq, &rrep);
-        if (!rstatus.ok()) {
-            std::cerr << "ReadQuery failed for GET " << key << ": " << rstatus.error_message() << "\n";
+        auto op_start = std::chrono::steady_clock::now();
+
+        abd::Tag max_tag;
+        max_tag.set_counter(0);
+        max_tag.set_client_id("");
+        std::string max_value;
+        bool have_value = false;
+        int success_count = 0;
+
+        for (auto& r : replicas_) {
+            abd::ReadQueryRequest rreq;
+            rreq.set_key(key);
+            abd::ReadQueryReply rrep;
+            grpc::ClientContext ctx;
+            grpc::Status status = r.stub->ReadQuery(&ctx, rreq, &rrep);
+            if (!status.ok()) {
+                std::cerr << "ReadQuery to " << r.address << " failed for GET " << key << ": " << status.error_message() << "\n";
+                continue;
+            }
+            success_count++;
+            const abd::Tag& t = rrep.tag();
+            if (!have_value || TagGreater(t, max_tag)) {
+                max_tag = t;
+                max_value = rrep.value();
+                have_value = true;
+            }
+        }
+
+        if (success_count < R_ || !have_value) {
+            auto op_end = std::chrono::steady_clock::now();
+            auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+            std::cerr << "GET " << key << " failed: did not reach read quorum in ReadQuery phase (" << success_count << " < " << R_ << ") latency_ms=" << latency_us << "\n";
             return false;
         }
-        value_out = rrep.value();
+
+        int ack_count = 0;
+        for (auto& r : replicas_) {
+            abd::WritePropRequest wreq;
+            wreq.set_key(key);
+            *wreq.mutable_tag() = max_tag;
+            wreq.set_value(max_value);
+            abd::Ack wrep;
+            grpc::ClientContext ctx;
+            grpc::Status status = r.stub->WriteProp(&ctx, wreq, &wrep);
+            if (!status.ok() || !wrep.ok()) {
+                std::cerr << "WriteProp (read write-back) to " << r.address << " failed for GET " << key << ": " << status.error_message() << "\n";
+                continue;
+            }
+            ack_count++;
+        }
+
+        if (ack_count < R_) {
+            auto op_end = std::chrono::steady_clock::now();
+            auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+            std::cerr << "GET " << key << " failed: did not reach read quorum in WriteProp phase (" << ack_count << " < " << R_ << ") latency_ms=" << latency_us << "\n";
+            return false;
+        }
+
+        auto op_end = std::chrono::steady_clock::now();
+        auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
+        value_out = max_value;
         pid_t current_pid = getpid();
-        std::cout << current_pid << " GET " << key << " -> " << value_out << "\n";
+        std::cout << current_pid << " GET " << key << " -> " << value_out << " (tag.counter=" << max_tag.counter() << ", tag.client_id=" << max_tag.client_id() << ") latency_ms=" << latency_us << "\n";
         return true;
     }
 
 private:
-    std::shared_ptr<grpc::Channel> channel_;
-    std::unique_ptr<abd::ABDService::Stub> stub_;
+    struct Replica {
+        std::string address;
+        std::shared_ptr<grpc::Channel> channel;
+        std::unique_ptr<abd::ABDService::Stub> stub;
+    };
+
+    static bool TagGreater(const abd::Tag& a, const abd::Tag& b)
+    {
+        if (a.counter() != b.counter()) return a.counter() > b.counter();
+        return a.client_id() > b.client_id();
+    }
+
+    std::vector<Replica> replicas_;
+    int N_ = 0;
+    int R_ = 0;
+    int W_ = 0;
+    std::string client_id_;
 };
 
 static std::string Trim(const std::string& s)
@@ -106,6 +217,7 @@ int main(int argc, char** argv) {
     while (std::getline(cfg, line_cfg)) {
         std::string trimmed = Trim(line_cfg);
         if (trimmed.empty()) continue;
+        if (trimmed[0] == '#') continue;
         server_addrs.push_back(trimmed);
     }
 
@@ -114,8 +226,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    const std::string& server_addr = server_addrs[0];
-    ABDClient client(server_addr);
+    ABDClient client(server_addrs);
 
     std::string line;
     while (std::getline(in, line)) {
