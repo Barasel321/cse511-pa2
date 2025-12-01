@@ -7,6 +7,9 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <sys/types.h>
+#include <unistd.h>
+#include <vector>
 
 class ABDClient {
 public:
@@ -43,8 +46,8 @@ public:
             std::cerr << "WriteProp failed for PUT " << key << ": " << wstatus.error_message() << "\n";
             return false;
         }
-
-        std::cout << "PUT " << key << " = " << value << "\n";
+        pid_t current_pid = getpid();
+        std::cout << current_pid << " PUT " << key << " = " << value << "\n";
         return true;
     }
 
@@ -60,7 +63,8 @@ public:
             return false;
         }
         value_out = rrep.value();
-        std::cout << "GET " << key << " -> " << value_out << "\n";
+        pid_t current_pid = getpid();
+        std::cout << current_pid << " GET " << key << " -> " << value_out << "\n";
         return true;
     }
 
@@ -68,6 +72,15 @@ private:
     std::shared_ptr<grpc::Channel> channel_;
     std::unique_ptr<abd::ABDService::Stub> stub_;
 };
+
+static std::string Trim(const std::string& s)
+{
+    std::string result = s;
+    auto start = result.find_first_not_of(" \t\r\n");
+    if (start == std::string::npos) return "";
+    auto end = result.find_last_not_of(" \t\r\n");
+    return result.substr(start, end - start + 1);
+}
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -82,16 +95,31 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string server_addr = "localhost:50051";
+    std::ifstream cfg("servers.conf");
+    if (!cfg.is_open()) {
+        std::cerr << "Failed to open servers.conf\n";
+        return 1;
+    }
+
+    std::vector<std::string> server_addrs;
+    std::string line_cfg;
+    while (std::getline(cfg, line_cfg)) {
+        std::string trimmed = Trim(line_cfg);
+        if (trimmed.empty()) continue;
+        server_addrs.push_back(trimmed);
+    }
+
+    if (server_addrs.empty()) {
+        std::cerr << "No server addresses found in servers.conf\n";
+        return 1;
+    }
+
+    const std::string& server_addr = server_addrs[0];
     ABDClient client(server_addr);
 
     std::string line;
     while (std::getline(in, line)) {
-        std::string trimmed = line;
-        auto start = trimmed.find_first_not_of(" \t\r\n");
-        if (start == std::string::npos) continue;
-        auto end = trimmed.find_last_not_of(" \t\r\n");
-        trimmed = trimmed.substr(start, end - start + 1);
+        std::string trimmed = Trim(line);
         if (trimmed.empty()) continue;
         if (trimmed[0] == '#') continue;
 
@@ -103,12 +131,7 @@ int main(int argc, char** argv) {
             iss >> key;
             std::string value;
             std::getline(iss, value);
-            auto vstart = value.find_first_not_of(" \t");
-            if (vstart != std::string::npos) {
-                value = value.substr(vstart);
-            } else {
-                value.clear();
-            }
+            value = Trim(value);
             if (!client.Put(key, value)) {
                 std::cerr << "PUT failed for key " << key << "\n";
             }

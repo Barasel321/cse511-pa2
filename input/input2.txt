@@ -1,2 +1,7 @@
 GET a
 GET b
+
+PUT a impossible
+
+GET a
+GET b
