@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package abdv2;
+
+// ABD Algorithm service definition.
+service ABDImpl {
+  // Responds to a read phase 1 request.
+  rpc ReadGet (ReadGetArg) returns (ReadGetRet) {}
+
+  // Responds to a read phase 2 request.
+  rpc ReadSet (ReadSetArg) returns (ReadSetRet) {}
+
+  // Responds to a write phase 1 request.
+  rpc WriteGet (WriteGetArg) returns (WriteGetRet) {}
+
+  // Responds to a write phase 2 request.
+  rpc WriteSet (WriteSetArg) returns (WriteSetRet) {}
+}
+
+// The read message for the get phase.
+message ReadGetArg {
+  optional string key = 1;
+}
+
+// The read return proto for the read get phase.
+message ReadGetRet {
+  optional string val = 1;
+
+  optional int32 timestamp = 2;
+}
+
+// The read message for the set phase.
+message ReadSetArg {
+  optional string key = 1;
+
+  optional string val = 2;
+
+  optional int32 timestamp = 3;
+}
+
+// The read return proto for the read set phase.
+message ReadSetRet {
+}
+
+// The write message for the get phase.
+message WriteGetArg {
+  optional string key = 1;
+
+  optional string val = 2;
+}
+
+// The write return proto for the write get phase.
+message WriteGetRet {
+  optional string val = 1;
+
+  optional int64 timestamp = 2;
+
+  optional int32 client_id = 3;
+}
+
+// The write message for the set phase.
+message WriteSetArg {
+  optional string key = 1;
+
+  optional string val = 2;
+
+  optional int32 timestamp = 3;
+}
+
+// The write return proto for the write set phase.
+message WriteSetRet {
+}

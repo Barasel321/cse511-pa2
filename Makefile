@@ -78,3 +78,12 @@ bin/test_client: src/ABDClient.cpp $(PROTO_SRC)
 bin/test_server: src/ABDServer.cpp $(PROTO_SRC)
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+
+bin/async_server: src/ABDServer_async.cpp $(PROTO_SRC)
+	@mkdir -p bin
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+bin/async_client: src/ABDClient_async.cpp $(PROTO_SRC)
+	@mkdir -p bin
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

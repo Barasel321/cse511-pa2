@@ -1,0 +1,7 @@
+op,key,value,latency_ms,success
+PUT,a,hello,22,1
+PUT,b,world,2,1
+GET,a,hello,7,1
+GET,b,world,6,1
+PUT,a,updated_value,11,1
+GET,a,updated_value,9,1

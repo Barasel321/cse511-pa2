@@ -117,6 +117,7 @@ public:
                 std::cerr << "ReadQuery to " << r.address << " failed for GET " << key << ": " << status.error_message() << "\n";
                 continue;
             }
+            //nice, count it
             success_count++;
             const abd::Tag& t = rrep.tag();
             if (!have_value || TagGreater(t, max_tag)) {
@@ -126,6 +127,7 @@ public:
             }
         }
 
+        //the quorum stuff
         if (success_count < R_ || !have_value) {
             // auto op_end = std::chrono::steady_clock::now();
             // auto latency_us = std::chrono::duration_cast<std::chrono::milliseconds>(op_end - op_start).count();
@@ -228,8 +230,14 @@ int main(int argc, char** argv) {
 
     ABDClient client(server_addrs);
 
-    std::string csv_path = input_path + ".csv";
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::localtime(&t);
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%d-%m-%Y_%H:%M:%S", &tm);
+    std::string csv_path = "logs/" + input_path + "-" + buf + ".csv";
     std::ofstream csv(csv_path);
+
     if (!csv.is_open()) {
         std::cerr << "Failed to open CSV file: " << csv_path << "\n";
         return 1;
