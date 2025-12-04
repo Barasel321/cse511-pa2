@@ -87,3 +87,7 @@ bin/async_server: src/ABDServer_async.cpp $(PROTO_SRC)
 bin/async_client: src/ABDClient_async.cpp $(PROTO_SRC)
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+bin/blocking_client: src/BlockingClient_async.cpp $(PROTO_SRC)
+	@mkdir -p bin
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

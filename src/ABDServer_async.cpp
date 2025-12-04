@@ -41,6 +41,10 @@ public:
         new ReadQueryCallData(&service_, cq_.get(), &table_, &mu_);
         new WritePropCallData(&service_, cq_.get(), &table_, &mu_);
 
+        // NEW: lock RPC handlers
+        new AcquireLockCallData(&service_, cq_.get(), &lock_table_, &mu_);
+        new ReleaseLockCallData(&service_, cq_.get(), &lock_table_, &mu_);
+
         void* tag;
         bool ok;
         while (cq_->Next(&tag, &ok)) {
@@ -266,6 +270,148 @@ private:
         std::mutex* mu_;
     };
 
+    // ----- AcquireLock -----
+    class AcquireLockCallData final : public CallData {
+    public:
+        AcquireLockCallData(abd::ABDService::AsyncService* service,
+                            grpc::ServerCompletionQueue* cq,
+                            std::unordered_map<std::string, std::string>* lock_table,
+                            std::mutex* mu)
+            : service_(service),
+              cq_(cq),
+              responder_(&ctx_),
+              status_(CREATE),
+              lock_table_(lock_table),
+              mu_(mu) {
+            Proceed(true);
+        }
+
+        void Proceed(bool ok) override {
+            if (!ok && status_ != FINISH) {
+                status_ = FINISH;
+            }
+
+            if (status_ == CREATE) {
+                status_ = PROCESS;
+                service_->RequestAcquireLock(&ctx_, &request_, &responder_,
+                                             cq_, cq_, this);
+            } else if (status_ == PROCESS) {
+                // Spawn next handler
+                new AcquireLockCallData(service_, cq_, lock_table_, mu_);
+
+                abd::AcquireLockReply reply;
+                {
+                    std::lock_guard<std::mutex> lock(*mu_);
+                    const std::string& key = request_.key();
+                    const std::string& client_id = request_.client_id();
+
+                    auto it = lock_table_->find(key);
+                    if (it == lock_table_->end() || it->second.empty()) {
+                        // No one holds the lock: grant to this client
+                        (*lock_table_)[key] = client_id;
+                        reply.set_granted(true);
+                        reply.set_holder(client_id);
+                    } else if (it->second == client_id) {
+                        // Re-entrant lock by same client: grant again
+                        reply.set_granted(true);
+                        reply.set_holder(client_id);
+                    } else {
+                        // Held by someone else
+                        reply.set_granted(false);
+                        reply.set_holder(it->second);
+                    }
+                }
+
+                status_ = FINISH;
+                responder_.Finish(reply, grpc::Status::OK, this);
+            } else {
+                delete this;
+            }
+        }
+
+    private:
+        abd::ABDService::AsyncService* service_;
+        grpc::ServerCompletionQueue* cq_;
+        grpc::ServerContext ctx_;
+
+        abd::AcquireLockRequest request_;
+        grpc::ServerAsyncResponseWriter<abd::AcquireLockReply> responder_;
+
+        enum CallStatus { CREATE, PROCESS, FINISH };
+        CallStatus status_;
+
+        std::unordered_map<std::string, std::string>* lock_table_;
+        std::mutex* mu_;
+    };
+
+    // ----- ReleaseLock -----
+    class ReleaseLockCallData final : public CallData {
+    public:
+        ReleaseLockCallData(abd::ABDService::AsyncService* service,
+                            grpc::ServerCompletionQueue* cq,
+                            std::unordered_map<std::string, std::string>* lock_table,
+                            std::mutex* mu)
+            : service_(service),
+              cq_(cq),
+              responder_(&ctx_),
+              status_(CREATE),
+              lock_table_(lock_table),
+              mu_(mu) {
+            Proceed(true);
+        }
+
+        void Proceed(bool ok) override {
+            if (!ok && status_ != FINISH) {
+                status_ = FINISH;
+            }
+
+            if (status_ == CREATE) {
+                status_ = PROCESS;
+                service_->RequestReleaseLock(&ctx_, &request_, &responder_,
+                                             cq_, cq_, this);
+            } else if (status_ == PROCESS) {
+                // Spawn next handler
+                new ReleaseLockCallData(service_, cq_, lock_table_, mu_);
+
+                abd::ReleaseLockReply reply;
+                {
+                    std::lock_guard<std::mutex> lock(*mu_);
+                    const std::string& key = request_.key();
+                    const std::string& client_id = request_.client_id();
+
+                    auto it = lock_table_->find(key);
+                    if (it != lock_table_->end() && it->second == client_id) {
+                        // Only current holder may release
+                        lock_table_->erase(it);
+                        reply.set_ok(true);
+                    } else {
+                        // Either no lock or wrong client; treat as failure
+                        reply.set_ok(false);
+                    }
+                }
+
+                status_ = FINISH;
+                responder_.Finish(reply, grpc::Status::OK, this);
+            } else {
+                delete this;
+            }
+        }
+
+    private:
+        abd::ABDService::AsyncService* service_;
+        grpc::ServerCompletionQueue* cq_;
+        grpc::ServerContext ctx_;
+
+        abd::ReleaseLockRequest request_;
+        grpc::ServerAsyncResponseWriter<abd::ReleaseLockReply> responder_;
+
+        enum CallStatus { CREATE, PROCESS, FINISH };
+        CallStatus status_;
+
+        std::unordered_map<std::string, std::string>* lock_table_;
+        std::mutex* mu_;
+    };
+
     std::string server_address_;
     abd::ABDService::AsyncService service_;
     std::unique_ptr<grpc::ServerCompletionQueue> cq_;
@@ -273,6 +419,9 @@ private:
 
     std::mutex mu_;
     std::unordered_map<std::string, Entry> table_;
+
+    // NEW: per-key lock owner (client_id) for blocking protocol
+    std::unordered_map<std::string, std::string> lock_table_;
 };
 
 int main(int argc, char** argv) {

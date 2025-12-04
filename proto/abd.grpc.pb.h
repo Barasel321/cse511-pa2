@@ -38,7 +38,6 @@ class ABDService final {
   class StubInterface {
    public:
     virtual ~StubInterface() {}
-    // WRITE protocol phase 1: server returns its current tag for key.
     virtual ::grpc::Status WriteQuery(::grpc::ClientContext* context, const ::abd::WriteQueryRequest& request, ::abd::WriteQueryReply* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::WriteQueryReply>> AsyncWriteQuery(::grpc::ClientContext* context, const ::abd::WriteQueryRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::WriteQueryReply>>(AsyncWriteQueryRaw(context, request, cq));
@@ -46,7 +45,6 @@ class ABDService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::WriteQueryReply>> PrepareAsyncWriteQuery(::grpc::ClientContext* context, const ::abd::WriteQueryRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::WriteQueryReply>>(PrepareAsyncWriteQueryRaw(context, request, cq));
     }
-    // READ protocol phase 1: server returns its current (tag, value) for key.
     virtual ::grpc::Status ReadQuery(::grpc::ClientContext* context, const ::abd::ReadQueryRequest& request, ::abd::ReadQueryReply* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReadQueryReply>> AsyncReadQuery(::grpc::ClientContext* context, const ::abd::ReadQueryRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReadQueryReply>>(AsyncReadQueryRaw(context, request, cq));
@@ -54,7 +52,6 @@ class ABDService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReadQueryReply>> PrepareAsyncReadQuery(::grpc::ClientContext* context, const ::abd::ReadQueryRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReadQueryReply>>(PrepareAsyncReadQueryRaw(context, request, cq));
     }
-    // WRITE/READ phase 2 ("write-back"): server stores (tag, value) if tag is newer.
     virtual ::grpc::Status WriteProp(::grpc::ClientContext* context, const ::abd::WritePropRequest& request, ::abd::Ack* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::Ack>> AsyncWriteProp(::grpc::ClientContext* context, const ::abd::WritePropRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::Ack>>(AsyncWritePropRaw(context, request, cq));
@@ -62,18 +59,33 @@ class ABDService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::Ack>> PrepareAsyncWriteProp(::grpc::ClientContext* context, const ::abd::WritePropRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::Ack>>(PrepareAsyncWritePropRaw(context, request, cq));
     }
+    virtual ::grpc::Status AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::abd::AcquireLockReply* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::AcquireLockReply>> AsyncAcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::AcquireLockReply>>(AsyncAcquireLockRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::AcquireLockReply>> PrepareAsyncAcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::AcquireLockReply>>(PrepareAsyncAcquireLockRaw(context, request, cq));
+    }
+    virtual ::grpc::Status ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::abd::ReleaseLockReply* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReleaseLockReply>> AsyncReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReleaseLockReply>>(AsyncReleaseLockRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReleaseLockReply>> PrepareAsyncReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReleaseLockReply>>(PrepareAsyncReleaseLockRaw(context, request, cq));
+    }
     class async_interface {
      public:
       virtual ~async_interface() {}
-      // WRITE protocol phase 1: server returns its current tag for key.
       virtual void WriteQuery(::grpc::ClientContext* context, const ::abd::WriteQueryRequest* request, ::abd::WriteQueryReply* response, std::function<void(::grpc::Status)>) = 0;
       virtual void WriteQuery(::grpc::ClientContext* context, const ::abd::WriteQueryRequest* request, ::abd::WriteQueryReply* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // READ protocol phase 1: server returns its current (tag, value) for key.
       virtual void ReadQuery(::grpc::ClientContext* context, const ::abd::ReadQueryRequest* request, ::abd::ReadQueryReply* response, std::function<void(::grpc::Status)>) = 0;
       virtual void ReadQuery(::grpc::ClientContext* context, const ::abd::ReadQueryRequest* request, ::abd::ReadQueryReply* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // WRITE/READ phase 2 ("write-back"): server stores (tag, value) if tag is newer.
       virtual void WriteProp(::grpc::ClientContext* context, const ::abd::WritePropRequest* request, ::abd::Ack* response, std::function<void(::grpc::Status)>) = 0;
       virtual void WriteProp(::grpc::ClientContext* context, const ::abd::WritePropRequest* request, ::abd::Ack* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      virtual void AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      virtual void ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response, ::grpc::ClientUnaryReactor* reactor) = 0;
     };
     typedef class async_interface experimental_async_interface;
     virtual class async_interface* async() { return nullptr; }
@@ -85,6 +97,10 @@ class ABDService final {
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReadQueryReply>* PrepareAsyncReadQueryRaw(::grpc::ClientContext* context, const ::abd::ReadQueryRequest& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::abd::Ack>* AsyncWritePropRaw(::grpc::ClientContext* context, const ::abd::WritePropRequest& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::abd::Ack>* PrepareAsyncWritePropRaw(::grpc::ClientContext* context, const ::abd::WritePropRequest& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::abd::AcquireLockReply>* AsyncAcquireLockRaw(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::abd::AcquireLockReply>* PrepareAsyncAcquireLockRaw(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReleaseLockReply>* AsyncReleaseLockRaw(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::abd::ReleaseLockReply>* PrepareAsyncReleaseLockRaw(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) = 0;
   };
   class Stub final : public StubInterface {
    public:
@@ -110,6 +126,20 @@ class ABDService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::Ack>> PrepareAsyncWriteProp(::grpc::ClientContext* context, const ::abd::WritePropRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::Ack>>(PrepareAsyncWritePropRaw(context, request, cq));
     }
+    ::grpc::Status AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::abd::AcquireLockReply* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::AcquireLockReply>> AsyncAcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::AcquireLockReply>>(AsyncAcquireLockRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::AcquireLockReply>> PrepareAsyncAcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::AcquireLockReply>>(PrepareAsyncAcquireLockRaw(context, request, cq));
+    }
+    ::grpc::Status ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::abd::ReleaseLockReply* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::ReleaseLockReply>> AsyncReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::ReleaseLockReply>>(AsyncReleaseLockRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::ReleaseLockReply>> PrepareAsyncReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::abd::ReleaseLockReply>>(PrepareAsyncReleaseLockRaw(context, request, cq));
+    }
     class async final :
       public StubInterface::async_interface {
      public:
@@ -119,6 +149,10 @@ class ABDService final {
       void ReadQuery(::grpc::ClientContext* context, const ::abd::ReadQueryRequest* request, ::abd::ReadQueryReply* response, ::grpc::ClientUnaryReactor* reactor) override;
       void WriteProp(::grpc::ClientContext* context, const ::abd::WritePropRequest* request, ::abd::Ack* response, std::function<void(::grpc::Status)>) override;
       void WriteProp(::grpc::ClientContext* context, const ::abd::WritePropRequest* request, ::abd::Ack* response, ::grpc::ClientUnaryReactor* reactor) override;
+      void AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response, std::function<void(::grpc::Status)>) override;
+      void AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response, ::grpc::ClientUnaryReactor* reactor) override;
+      void ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response, std::function<void(::grpc::Status)>) override;
+      void ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response, ::grpc::ClientUnaryReactor* reactor) override;
      private:
       friend class Stub;
       explicit async(Stub* stub): stub_(stub) { }
@@ -136,9 +170,15 @@ class ABDService final {
     ::grpc::ClientAsyncResponseReader< ::abd::ReadQueryReply>* PrepareAsyncReadQueryRaw(::grpc::ClientContext* context, const ::abd::ReadQueryRequest& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::abd::Ack>* AsyncWritePropRaw(::grpc::ClientContext* context, const ::abd::WritePropRequest& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::abd::Ack>* PrepareAsyncWritePropRaw(::grpc::ClientContext* context, const ::abd::WritePropRequest& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::abd::AcquireLockReply>* AsyncAcquireLockRaw(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::abd::AcquireLockReply>* PrepareAsyncAcquireLockRaw(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::abd::ReleaseLockReply>* AsyncReleaseLockRaw(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::abd::ReleaseLockReply>* PrepareAsyncReleaseLockRaw(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) override;
     const ::grpc::internal::RpcMethod rpcmethod_WriteQuery_;
     const ::grpc::internal::RpcMethod rpcmethod_ReadQuery_;
     const ::grpc::internal::RpcMethod rpcmethod_WriteProp_;
+    const ::grpc::internal::RpcMethod rpcmethod_AcquireLock_;
+    const ::grpc::internal::RpcMethod rpcmethod_ReleaseLock_;
   };
   static std::unique_ptr<Stub> NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
 
@@ -146,12 +186,11 @@ class ABDService final {
    public:
     Service();
     virtual ~Service();
-    // WRITE protocol phase 1: server returns its current tag for key.
     virtual ::grpc::Status WriteQuery(::grpc::ServerContext* context, const ::abd::WriteQueryRequest* request, ::abd::WriteQueryReply* response);
-    // READ protocol phase 1: server returns its current (tag, value) for key.
     virtual ::grpc::Status ReadQuery(::grpc::ServerContext* context, const ::abd::ReadQueryRequest* request, ::abd::ReadQueryReply* response);
-    // WRITE/READ phase 2 ("write-back"): server stores (tag, value) if tag is newer.
     virtual ::grpc::Status WriteProp(::grpc::ServerContext* context, const ::abd::WritePropRequest* request, ::abd::Ack* response);
+    virtual ::grpc::Status AcquireLock(::grpc::ServerContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response);
+    virtual ::grpc::Status ReleaseLock(::grpc::ServerContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response);
   };
   template <class BaseClass>
   class WithAsyncMethod_WriteQuery : public BaseClass {
@@ -213,7 +252,47 @@ class ABDService final {
       ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_WriteQuery<WithAsyncMethod_ReadQuery<WithAsyncMethod_WriteProp<Service > > > AsyncService;
+  template <class BaseClass>
+  class WithAsyncMethod_AcquireLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithAsyncMethod_AcquireLock() {
+      ::grpc::Service::MarkMethodAsync(3);
+    }
+    ~WithAsyncMethod_AcquireLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AcquireLock(::grpc::ServerContext* /*context*/, const ::abd::AcquireLockRequest* /*request*/, ::abd::AcquireLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestAcquireLock(::grpc::ServerContext* context, ::abd::AcquireLockRequest* request, ::grpc::ServerAsyncResponseWriter< ::abd::AcquireLockReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(3, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
+  class WithAsyncMethod_ReleaseLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithAsyncMethod_ReleaseLock() {
+      ::grpc::Service::MarkMethodAsync(4);
+    }
+    ~WithAsyncMethod_ReleaseLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status ReleaseLock(::grpc::ServerContext* /*context*/, const ::abd::ReleaseLockRequest* /*request*/, ::abd::ReleaseLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestReleaseLock(::grpc::ServerContext* context, ::abd::ReleaseLockRequest* request, ::grpc::ServerAsyncResponseWriter< ::abd::ReleaseLockReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(4, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  typedef WithAsyncMethod_WriteQuery<WithAsyncMethod_ReadQuery<WithAsyncMethod_WriteProp<WithAsyncMethod_AcquireLock<WithAsyncMethod_ReleaseLock<Service > > > > > AsyncService;
   template <class BaseClass>
   class WithCallbackMethod_WriteQuery : public BaseClass {
    private:
@@ -295,7 +374,61 @@ class ABDService final {
     virtual ::grpc::ServerUnaryReactor* WriteProp(
       ::grpc::CallbackServerContext* /*context*/, const ::abd::WritePropRequest* /*request*/, ::abd::Ack* /*response*/)  { return nullptr; }
   };
-  typedef WithCallbackMethod_WriteQuery<WithCallbackMethod_ReadQuery<WithCallbackMethod_WriteProp<Service > > > CallbackService;
+  template <class BaseClass>
+  class WithCallbackMethod_AcquireLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithCallbackMethod_AcquireLock() {
+      ::grpc::Service::MarkMethodCallback(3,
+          new ::grpc::internal::CallbackUnaryHandler< ::abd::AcquireLockRequest, ::abd::AcquireLockReply>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response) { return this->AcquireLock(context, request, response); }));}
+    void SetMessageAllocatorFor_AcquireLock(
+        ::grpc::MessageAllocator< ::abd::AcquireLockRequest, ::abd::AcquireLockReply>* allocator) {
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(3);
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::abd::AcquireLockRequest, ::abd::AcquireLockReply>*>(handler)
+              ->SetMessageAllocator(allocator);
+    }
+    ~WithCallbackMethod_AcquireLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AcquireLock(::grpc::ServerContext* /*context*/, const ::abd::AcquireLockRequest* /*request*/, ::abd::AcquireLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* AcquireLock(
+      ::grpc::CallbackServerContext* /*context*/, const ::abd::AcquireLockRequest* /*request*/, ::abd::AcquireLockReply* /*response*/)  { return nullptr; }
+  };
+  template <class BaseClass>
+  class WithCallbackMethod_ReleaseLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithCallbackMethod_ReleaseLock() {
+      ::grpc::Service::MarkMethodCallback(4,
+          new ::grpc::internal::CallbackUnaryHandler< ::abd::ReleaseLockRequest, ::abd::ReleaseLockReply>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response) { return this->ReleaseLock(context, request, response); }));}
+    void SetMessageAllocatorFor_ReleaseLock(
+        ::grpc::MessageAllocator< ::abd::ReleaseLockRequest, ::abd::ReleaseLockReply>* allocator) {
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(4);
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::abd::ReleaseLockRequest, ::abd::ReleaseLockReply>*>(handler)
+              ->SetMessageAllocator(allocator);
+    }
+    ~WithCallbackMethod_ReleaseLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status ReleaseLock(::grpc::ServerContext* /*context*/, const ::abd::ReleaseLockRequest* /*request*/, ::abd::ReleaseLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* ReleaseLock(
+      ::grpc::CallbackServerContext* /*context*/, const ::abd::ReleaseLockRequest* /*request*/, ::abd::ReleaseLockReply* /*response*/)  { return nullptr; }
+  };
+  typedef WithCallbackMethod_WriteQuery<WithCallbackMethod_ReadQuery<WithCallbackMethod_WriteProp<WithCallbackMethod_AcquireLock<WithCallbackMethod_ReleaseLock<Service > > > > > CallbackService;
   typedef CallbackService ExperimentalCallbackService;
   template <class BaseClass>
   class WithGenericMethod_WriteQuery : public BaseClass {
@@ -344,6 +477,40 @@ class ABDService final {
     }
     // disable synchronous version of this method
     ::grpc::Status WriteProp(::grpc::ServerContext* /*context*/, const ::abd::WritePropRequest* /*request*/, ::abd::Ack* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+  };
+  template <class BaseClass>
+  class WithGenericMethod_AcquireLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithGenericMethod_AcquireLock() {
+      ::grpc::Service::MarkMethodGeneric(3);
+    }
+    ~WithGenericMethod_AcquireLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AcquireLock(::grpc::ServerContext* /*context*/, const ::abd::AcquireLockRequest* /*request*/, ::abd::AcquireLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+  };
+  template <class BaseClass>
+  class WithGenericMethod_ReleaseLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithGenericMethod_ReleaseLock() {
+      ::grpc::Service::MarkMethodGeneric(4);
+    }
+    ~WithGenericMethod_ReleaseLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status ReleaseLock(::grpc::ServerContext* /*context*/, const ::abd::ReleaseLockRequest* /*request*/, ::abd::ReleaseLockReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -406,6 +573,46 @@ class ABDService final {
     }
     void RequestWriteProp(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
       ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
+  class WithRawMethod_AcquireLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawMethod_AcquireLock() {
+      ::grpc::Service::MarkMethodRaw(3);
+    }
+    ~WithRawMethod_AcquireLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AcquireLock(::grpc::ServerContext* /*context*/, const ::abd::AcquireLockRequest* /*request*/, ::abd::AcquireLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestAcquireLock(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(3, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
+  class WithRawMethod_ReleaseLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawMethod_ReleaseLock() {
+      ::grpc::Service::MarkMethodRaw(4);
+    }
+    ~WithRawMethod_ReleaseLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status ReleaseLock(::grpc::ServerContext* /*context*/, const ::abd::ReleaseLockRequest* /*request*/, ::abd::ReleaseLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestReleaseLock(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(4, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -472,6 +679,50 @@ class ABDService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     virtual ::grpc::ServerUnaryReactor* WriteProp(
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
+  };
+  template <class BaseClass>
+  class WithRawCallbackMethod_AcquireLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawCallbackMethod_AcquireLock() {
+      ::grpc::Service::MarkMethodRawCallback(3,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AcquireLock(context, request, response); }));
+    }
+    ~WithRawCallbackMethod_AcquireLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AcquireLock(::grpc::ServerContext* /*context*/, const ::abd::AcquireLockRequest* /*request*/, ::abd::AcquireLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* AcquireLock(
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
+  };
+  template <class BaseClass>
+  class WithRawCallbackMethod_ReleaseLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawCallbackMethod_ReleaseLock() {
+      ::grpc::Service::MarkMethodRawCallback(4,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->ReleaseLock(context, request, response); }));
+    }
+    ~WithRawCallbackMethod_ReleaseLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status ReleaseLock(::grpc::ServerContext* /*context*/, const ::abd::ReleaseLockRequest* /*request*/, ::abd::ReleaseLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* ReleaseLock(
       ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
@@ -555,9 +806,63 @@ class ABDService final {
     // replace default version of method with streamed unary
     virtual ::grpc::Status StreamedWriteProp(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::abd::WritePropRequest,::abd::Ack>* server_unary_streamer) = 0;
   };
-  typedef WithStreamedUnaryMethod_WriteQuery<WithStreamedUnaryMethod_ReadQuery<WithStreamedUnaryMethod_WriteProp<Service > > > StreamedUnaryService;
+  template <class BaseClass>
+  class WithStreamedUnaryMethod_AcquireLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithStreamedUnaryMethod_AcquireLock() {
+      ::grpc::Service::MarkMethodStreamed(3,
+        new ::grpc::internal::StreamedUnaryHandler<
+          ::abd::AcquireLockRequest, ::abd::AcquireLockReply>(
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
+                     ::abd::AcquireLockRequest, ::abd::AcquireLockReply>* streamer) {
+                       return this->StreamedAcquireLock(context,
+                         streamer);
+                  }));
+    }
+    ~WithStreamedUnaryMethod_AcquireLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable regular version of this method
+    ::grpc::Status AcquireLock(::grpc::ServerContext* /*context*/, const ::abd::AcquireLockRequest* /*request*/, ::abd::AcquireLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    // replace default version of method with streamed unary
+    virtual ::grpc::Status StreamedAcquireLock(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::abd::AcquireLockRequest,::abd::AcquireLockReply>* server_unary_streamer) = 0;
+  };
+  template <class BaseClass>
+  class WithStreamedUnaryMethod_ReleaseLock : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithStreamedUnaryMethod_ReleaseLock() {
+      ::grpc::Service::MarkMethodStreamed(4,
+        new ::grpc::internal::StreamedUnaryHandler<
+          ::abd::ReleaseLockRequest, ::abd::ReleaseLockReply>(
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
+                     ::abd::ReleaseLockRequest, ::abd::ReleaseLockReply>* streamer) {
+                       return this->StreamedReleaseLock(context,
+                         streamer);
+                  }));
+    }
+    ~WithStreamedUnaryMethod_ReleaseLock() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable regular version of this method
+    ::grpc::Status ReleaseLock(::grpc::ServerContext* /*context*/, const ::abd::ReleaseLockRequest* /*request*/, ::abd::ReleaseLockReply* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    // replace default version of method with streamed unary
+    virtual ::grpc::Status StreamedReleaseLock(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::abd::ReleaseLockRequest,::abd::ReleaseLockReply>* server_unary_streamer) = 0;
+  };
+  typedef WithStreamedUnaryMethod_WriteQuery<WithStreamedUnaryMethod_ReadQuery<WithStreamedUnaryMethod_WriteProp<WithStreamedUnaryMethod_AcquireLock<WithStreamedUnaryMethod_ReleaseLock<Service > > > > > StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_WriteQuery<WithStreamedUnaryMethod_ReadQuery<WithStreamedUnaryMethod_WriteProp<Service > > > StreamedService;
+  typedef WithStreamedUnaryMethod_WriteQuery<WithStreamedUnaryMethod_ReadQuery<WithStreamedUnaryMethod_WriteProp<WithStreamedUnaryMethod_AcquireLock<WithStreamedUnaryMethod_ReleaseLock<Service > > > > > StreamedService;
 };
 
 }  // namespace abd

@@ -2,13 +2,10 @@ syntax = "proto3";
 
 package abd;
 
-// Tag used by ABD: (counter, client_id)
 message Tag {
   uint64 counter = 1;   // Lamport-style counter
-  string client_id = 2; // Unique per client process
+  string client_id = 2;
 }
-
-// ---------- Requests / Replies for ABD phases ----------
 
 // Phase 1 of WRITE: client asks for the current tag of a key.
 message WriteQueryRequest {
@@ -42,15 +39,35 @@ message Ack {
   string error = 2;     // optional error message (for logging/debug)
 }
 
+message AcquireLockRequest {
+  string key = 1;
+  string client_id = 2;
+}
+
+message AcquireLockReply {
+  bool granted = 1;
+  string holder = 2;      // optional: tells who holds the lock if not granted
+}
+
+message ReleaseLockRequest {
+  string key = 1;
+  string client_id = 2;
+}
+
+message ReleaseLockReply {
+  bool ok = 1;
+}
+
+
 // ---------- ABD Service ----------
 
 service ABDService {
-  // WRITE protocol phase 1: server returns its current tag for key.
   rpc WriteQuery(WriteQueryRequest) returns (WriteQueryReply);
 
-  // READ protocol phase 1: server returns its current (tag, value) for key.
   rpc ReadQuery(ReadQueryRequest) returns (ReadQueryReply);
 
-  // WRITE/READ phase 2 ("write-back"): server stores (tag, value) if tag is newer.
   rpc WriteProp(WritePropRequest) returns (Ack);
+
+  rpc AcquireLock(AcquireLockRequest) returns (AcquireLockReply);
+  rpc ReleaseLock(ReleaseLockRequest) returns (ReleaseLockReply);
 }

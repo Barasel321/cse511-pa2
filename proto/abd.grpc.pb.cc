@@ -26,6 +26,8 @@ static const char* ABDService_method_names[] = {
   "/abd.ABDService/WriteQuery",
   "/abd.ABDService/ReadQuery",
   "/abd.ABDService/WriteProp",
+  "/abd.ABDService/AcquireLock",
+  "/abd.ABDService/ReleaseLock",
 };
 
 std::unique_ptr< ABDService::Stub> ABDService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -38,6 +40,8 @@ ABDService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel
   : channel_(channel), rpcmethod_WriteQuery_(ABDService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_ReadQuery_(ABDService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_WriteProp_(ABDService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AcquireLock_(ABDService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ReleaseLock_(ABDService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status ABDService::Stub::WriteQuery(::grpc::ClientContext* context, const ::abd::WriteQueryRequest& request, ::abd::WriteQueryReply* response) {
@@ -109,6 +113,52 @@ void ABDService::Stub::async::WriteProp(::grpc::ClientContext* context, const ::
   return result;
 }
 
+::grpc::Status ABDService::Stub::AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::abd::AcquireLockReply* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::abd::AcquireLockRequest, ::abd::AcquireLockReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AcquireLock_, context, request, response);
+}
+
+void ABDService::Stub::async::AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::abd::AcquireLockRequest, ::abd::AcquireLockReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AcquireLock_, context, request, response, std::move(f));
+}
+
+void ABDService::Stub::async::AcquireLock(::grpc::ClientContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AcquireLock_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::abd::AcquireLockReply>* ABDService::Stub::PrepareAsyncAcquireLockRaw(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::abd::AcquireLockReply, ::abd::AcquireLockRequest, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_AcquireLock_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::abd::AcquireLockReply>* ABDService::Stub::AsyncAcquireLockRaw(::grpc::ClientContext* context, const ::abd::AcquireLockRequest& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncAcquireLockRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ABDService::Stub::ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::abd::ReleaseLockReply* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::abd::ReleaseLockRequest, ::abd::ReleaseLockReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_ReleaseLock_, context, request, response);
+}
+
+void ABDService::Stub::async::ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::abd::ReleaseLockRequest, ::abd::ReleaseLockReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ReleaseLock_, context, request, response, std::move(f));
+}
+
+void ABDService::Stub::async::ReleaseLock(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ReleaseLock_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::abd::ReleaseLockReply>* ABDService::Stub::PrepareAsyncReleaseLockRaw(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::abd::ReleaseLockReply, ::abd::ReleaseLockRequest, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_ReleaseLock_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::abd::ReleaseLockReply>* ABDService::Stub::AsyncReleaseLockRaw(::grpc::ClientContext* context, const ::abd::ReleaseLockRequest& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncReleaseLockRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
 ABDService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       ABDService_method_names[0],
@@ -140,6 +190,26 @@ ABDService::Service::Service() {
              ::abd::Ack* resp) {
                return service->WriteProp(ctx, req, resp);
              }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ABDService_method_names[3],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ABDService::Service, ::abd::AcquireLockRequest, ::abd::AcquireLockReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ABDService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::abd::AcquireLockRequest* req,
+             ::abd::AcquireLockReply* resp) {
+               return service->AcquireLock(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ABDService_method_names[4],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ABDService::Service, ::abd::ReleaseLockRequest, ::abd::ReleaseLockReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ABDService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::abd::ReleaseLockRequest* req,
+             ::abd::ReleaseLockReply* resp) {
+               return service->ReleaseLock(ctx, req, resp);
+             }, this)));
 }
 
 ABDService::Service::~Service() {
@@ -160,6 +230,20 @@ ABDService::Service::~Service() {
 }
 
 ::grpc::Status ABDService::Service::WriteProp(::grpc::ServerContext* context, const ::abd::WritePropRequest* request, ::abd::Ack* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ABDService::Service::AcquireLock(::grpc::ServerContext* context, const ::abd::AcquireLockRequest* request, ::abd::AcquireLockReply* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ABDService::Service::ReleaseLock(::grpc::ServerContext* context, const ::abd::ReleaseLockRequest* request, ::abd::ReleaseLockReply* response) {
   (void) context;
   (void) request;
   (void) response;
