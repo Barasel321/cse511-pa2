@@ -34,7 +34,6 @@ Status ABDReplica::ReadGet(ServerContext* context,
   return Status::OK;
 }
 
-// Logic and data behind the server's behavior.
 Status ABDReplica::ReadSet(ServerContext* context,
                            const abd_algo::ReadSetArg* request,
                            abd_algo::ReadSetRet* reply) {

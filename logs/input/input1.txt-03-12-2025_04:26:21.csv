@@ -1,7 +1,0 @@
-op,key,value,latency_ms,success
-PUT,a,hello,22,1
-PUT,b,world,5,1
-GET,a,hello,8,1
-GET,b,world,2,1
-PUT,a,updated_value,9,1
-GET,a,updated_value,3,1

@@ -348,7 +348,7 @@ int main(int argc, char** argv) {
     while (std::getline(cfg, line_cfg)) {
         std::string trimmed = Trim(line_cfg);
         if (trimmed.empty()) continue;
-        if (trimmed[0] == '#') continue;
+        if (trimmed[0] == '#') continue; //we love commenting for 1,3,5 quorums
         server_addrs.push_back(trimmed);
     }
 
@@ -359,7 +359,7 @@ int main(int argc, char** argv) {
 
     ABDClient client(server_addrs);
 
-    auto now = std::chrono::system_clock::now();
+    auto now = std::chrono::system_clock::now(); //reported time
     std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm tm = *std::localtime(&t);
     char buf[64];
@@ -375,6 +375,10 @@ int main(int argc, char** argv) {
     csv << "op,key,value,latency_ms,success\n";
 
     std::string line;
+
+    auto tt_start = std::chrono::steady_clock::now();
+    int ops = 0;
+
     while (std::getline(in, line)) {
         std::string trimmed = Trim(line);
         if (trimmed.empty()) continue;
@@ -398,6 +402,7 @@ int main(int argc, char** argv) {
 
 
             csv << "PUT," << key << "," << value << "," << latency_ms << "," << (ok ? 1 : 0) << "\n";
+            ops++;
             if (!ok) {
                 std::cerr << "PUT failed for key " << key << "\n";
             }
@@ -413,6 +418,7 @@ int main(int argc, char** argv) {
 
 
             csv << "GET," << key << "," << value << "," << latency_ms << "," << (ok ? 1 : 0) << "\n";
+            ops++;
             if (!ok) {
                 std::cerr << "GET failed for key " << key << "\n";
             }
@@ -420,6 +426,20 @@ int main(int argc, char** argv) {
             std::cerr << "Unknown command in input file: " << cmd << "\n";
         }
     }
+
+    auto tt_stop = std::chrono::steady_clock::now();
+    auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(tt_stop - tt_start).count();
+
+    double total_time_sec = total_time / 1000.0;
+
+    // Avoid division by zero
+    double throughput = (total_time_sec > 0.0) ? (ops / total_time_sec) : 0.0;
+
+    std::cout << "=== Performance Summary ===\n";
+    std::cout << "Total Operations : " << ops << "\n";
+    std::cout << "Total Time       : " << total_time << " ms (" 
+            << total_time_sec << " s)\n";
+    std::cout << "Throughput       : " << throughput << " ops/sec\n";
 
     return 0;
 }

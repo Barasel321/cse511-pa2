@@ -8,7 +8,7 @@ CXXFLAGS := -std=c++17 -O0 -I. -Igrpc -I$(LOCAL_PREFIX)/include
 # only use pkg-config for protobuf (grpc++ .pc causes the openssl/re2/zlib error)
 CXXFLAGS += $(shell pkg-config --cflags protobuf)
 
-# ---- Link flags ----
+# had to do it staticly. It never worked with just grpc++ and protobuf referenced. Look for a better solution later, but I know there is no solution more permenant than a temporary one.
 LDFLAGS := -L$(LOCAL_PREFIX)/lib \
            $(shell pkg-config --libs protobuf) \
            -lgrpc++ -lgrpc -lgpr \
@@ -62,8 +62,8 @@ LDFLAGS := -L$(LOCAL_PREFIX)/lib \
 gen-map: 
 	protoc \
 	-I proto \
-	--cpp_out=generated \
-	--grpc_out=generated \
+	--cpp_out=proto \
+	--grpc_out=proto \
 	--plugin=protoc-gen-grpc=$(which grpc_cpp_plugin) \
 	proto/abd.proto
 
@@ -80,14 +80,17 @@ bin/test_server: src/ABDServer.cpp $(PROTO_SRC)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 
+# ACTUAL SERVER (BOTH ABD AND LOCKING CLIENT)
 bin/async_server: src/ABDServer_async.cpp $(PROTO_SRC)
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
+# ABD CLIENT
 bin/async_client: src/ABDClient_async.cpp $(PROTO_SRC)
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
+# BLOCKING CLIENT
 bin/blocking_client: src/BlockingClient_async.cpp $(PROTO_SRC)
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

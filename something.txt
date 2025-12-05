@@ -1,0 +1,19 @@
+./bin/blocking_client input/input90put.txt & ./bin/blocking_client input/input90put.txt & \
+./bin/blocking_client input/input90put.txt & ./bin/blocking_client input/input90put.txt & \
+./bin/blocking_client input/input90put.txt & ./bin/blocking_client input/input90put.txt & \
+./bin/blocking_client input/input90put.txt & ./bin/blocking_client input/input90put.txt & \
+./bin/blocking_client input/input90put.txt & ./bin/blocking_client input/input90put.txt & \
+./bin/blocking_client input/input90put.txt & ./bin/blocking_client input/input90put.txt & \
+./bin/blocking_client input/input90put.txt & ./bin/blocking_client input/input90put.txt & \
+./bin/blocking_client input/input90put.txt & ./bin/blocking_client input/input90put.txt & \
+wait
+
+./bin/blocking_client input/input90get.txt & ./bin/blocking_client input/input90get.txt & \
+./bin/blocking_client input/input90get.txt & ./bin/blocking_client input/input90get.txt & \
+./bin/blocking_client input/input90get.txt & ./bin/blocking_client input/input90get.txt & \
+./bin/blocking_client input/input90get.txt & ./bin/blocking_client input/input90get.txt & \
+./bin/blocking_client input/input90get.txt & ./bin/blocking_client input/input90get.txt & \
+./bin/blocking_client input/input90get.txt & ./bin/blocking_client input/input90get.txt & \
+./bin/blocking_client input/input90get.txt & ./bin/blocking_client input/input90get.txt & \
+./bin/blocking_client input/input90get.txt & ./bin/blocking_client input/input90get.txt & \
+wait
